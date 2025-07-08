@@ -1,0 +1,29 @@
+{
+  "name": "zksync-latam-cowork-day",
+  "version": "1.0.0",
+  "description": "ZKsync LATAM Cowork Day - Event registration with Signia Auth",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "serve": "python3 -m http.server 3000",
+    "build": "echo 'No build needed for static site'",
+    "start": "python3 -m http.server 3000"
+  },
+  "dependencies": {
+    "@getsignia/signia-auth-sdk": "^0.1.5",
+    "@getsignia/signia-auth-ui-react": "^0.1.5"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": [
+    "zksync",
+    "latam",
+    "cowork",
+    "signia",
+    "auth",
+    "event"
+  ],
+  "author": "Pablo Mosquella",
+  "license": "MIT"
+} 

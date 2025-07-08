@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZKsync LATAM Cowork Day</title>
+    <title>ZKsync LATAM Cowork Day - Registro</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,52 +13,145 @@
                 <img src="zksync-light.png" alt="ZKsync Logo" class="zksync-logo">
             </div>
             <h1>ZKsync LATAM Cowork Day</h1>
-            <p class="subtitle">Únete a nosotros en este evento especial</p>
-            <div class="auth-info">
-                <span id="userInfo"></span>
-                <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
-            </div>
+            <p class="subtitle">Completa tu registro para el evento</p>
         </header>
         
+        <!-- Información del usuario autenticado -->
+        <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-card">
+                <h3>👋 ¡Bienvenido!</h3>
+                <p><strong>Nombre:</strong> <span id="userName">-</span></p>
+                <p><strong>Email:</strong> <span id="userEmail">-</span></p>
+                <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+
         <main class="main-content">
-            <form id="registrationForm" class="form">
-                <div class="form-group">
-                    <label for="tlHandle">TL Handle</label>
-                    <input type="text" id="tlHandle" name="tlHandle" required placeholder="Ingresa tu TL handle">
+            <div class="form-container">
+                <h2>Registro del Evento</h2>
+                <p class="form-description">
+                    Por favor completa la siguiente información para confirmar tu participación en el ZKsync LATAM Cowork Day.
+                </p>
+                
+                <form id="registrationForm" class="form">
+                    <div class="form-group">
+                        <label for="tlHandle">TL Handle *</label>
+                        <input type="text" id="tlHandle" name="tlHandle" placeholder="@tuhandle" required>
+                        <small>Tu handle de TL (Timeline/Twitter)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lumaEmail">Email de LUMA *</label>
+                        <input type="email" id="lumaEmail" name="lumaEmail" placeholder="tu@email.com" required>
+                        <small>Email que usaste para registrarte en LUMA</small>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        <span class="btn-text">Completar Registro</span>
+                        <span class="btn-loading" style="display: none;">Enviando...</span>
+                    </button>
+                </form>
+                
+                <div id="successMessage" class="success-message" style="display: none;">
+                    <h3>🎉 ¡Registro Completado!</h3>
+                    <p>Gracias por registrarte al ZKsync LATAM Cowork Day. Te contactaremos pronto con más detalles del evento.</p>
                 </div>
                 
-                <div class="form-group">
-                    <label for="lumaEmail">Email de inscripción en LUMA</label>
-                    <input type="email" id="lumaEmail" name="lumaEmail" required placeholder="email@ejemplo.com">
+                <div id="errorMessage" class="error-message" style="display: none;">
+                    <h3>❌ Error</h3>
+                    <p id="errorText">Hubo un problema al procesar tu registro. Por favor, intenta de nuevo.</p>
                 </div>
-                
-                <button type="submit" class="submit-btn">Enviar</button>
-            </form>
+            </div>
         </main>
-        
+
         <footer class="footer">
             <p>&copy; 2024 ZKsync LATAM Cowork Day</p>
         </footer>
     </div>
-    
+
     <script src="signia-auth.js"></script>
     <script src="script.js"></script>
     <script>
         // Verificar autenticación al cargar la página
-        document.addEventListener('DOMContentLoaded', function() {
-            const user = checkAuthentication();
-            if (user) {
-                displayUserInfo(user);
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔄 Verificando autenticación...');
+            
+            try {
+                // Esperar a que el cliente de autenticación esté disponible
+                await waitForAuthClient();
+                
+                // Verificar si el usuario está autenticado
+                if (!window.signiaAuthClient.isAuthenticated) {
+                    console.log('❌ Usuario no autenticado, redirigiendo a welcome...');
+                    window.location.href = '/welcome.html';
+                    return;
+                }
+                
+                // Mostrar información del usuario
+                const user = window.signiaAuthClient.user;
+                if (user) {
+                    console.log('✅ Usuario autenticado:', user.name);
+                    displayUserInfo(user);
+                    showUserInfo();
+                }
+                
+            } catch (error) {
+                console.error('❌ Error verificando autenticación:', error);
+                window.location.href = '/welcome.html';
             }
         });
         
-        // Función mejorada para mostrar información del usuario
+        async function waitForAuthClient() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 segundos máximo
+                
+                const checkClient = () => {
+                    if (window.signiaAuthClient) {
+                        resolve();
+                        return;
+                    }
+                    
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        reject(new Error('Cliente de autenticación no disponible'));
+                        return;
+                    }
+                    
+                    setTimeout(checkClient, 100);
+                };
+                
+                checkClient();
+            });
+        }
+        
         function displayUserInfo(user) {
-            const userInfoElement = document.getElementById('userInfo');
-            if (userInfoElement && user.name) {
-                userInfoElement.textContent = `Hola, ${user.name}`;
+            const userNameElement = document.getElementById('userName');
+            const userEmailElement = document.getElementById('userEmail');
+            
+            if (userNameElement) {
+                userNameElement.textContent = user.name || 'Usuario';
+            }
+            
+            if (userEmailElement) {
+                userEmailElement.textContent = user.email || '-';
             }
         }
+        
+        function showUserInfo() {
+            const userInfoElement = document.getElementById('userInfo');
+            if (userInfoElement) {
+                userInfoElement.style.display = 'block';
+            }
+        }
+        
+        // Configurar logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (window.signiaAuthClient) {
+                window.signiaAuthClient.logout();
+            }
+        });
     </script>
 </body>
+</html> 
 </html> 

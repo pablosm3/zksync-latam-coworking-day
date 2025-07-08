@@ -1,35 +1,36 @@
 /**
  * Signia Auth Configuration for ZKsync LATAM Cowork Day
- * Adapted from Next.js implementation to vanilla JavaScript
+ * Vanilla JavaScript implementation using OAuth2/OIDC standards
  */
 
-// ✅ CONFIGURACIÓN DE SIGNIA AUTH - ZKsync LATAM
-// Detectar entorno automáticamente
+// ✅ CONFIGURACIÓN CORRECTA DE SIGNIA AUTH - ZKsync LATAM
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const baseUrl = isDevelopment ? 'http://localhost:3000' : 'https://zksynclatam.terolabs.xyz';
 
 const SIGNIA_CONFIG = {
-    clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',    // Client ID de Signia Auth
-    issuer: 'https://zksynclatam.signiaauth.com',          // Servidor de Signia Auth
-    redirectUri: `${baseUrl}/oidc-callback`,               // ✅ Callback correcto para OIDC
+    clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',     // ✅ Client ID correcto
+    redirectUri: `${baseUrl}/oidc-callback`,                // ✅ Callback OIDC estándar
+    issuer: 'https://zksynclatam.signiaauth.com',           // ✅ Issuer correcto
     scopes: ['openid', 'profile', 'email'],
-    // Endpoints específicos de OAuth 2.0
+    
+    // Endpoints estándar OAuth2/OIDC
     endpoints: {
-        authorization: 'https://zksynclatam.signiaauth.com/oauth2/authorize',
-        token: 'https://zksynclatam.signiaauth.com/oauth2/token',
-        userInfo: 'https://zksynclatam.signiaauth.com/oauth2/userinfo'
+        authorization: 'https://zksynclatam.signiaauth.com/auth/realms/zksynclatam/protocol/openid-connect/auth',
+        token: 'https://zksynclatam.signiaauth.com/auth/realms/zksynclatam/protocol/openid-connect/token',
+        userinfo: 'https://zksynclatam.signiaauth.com/auth/realms/zksynclatam/protocol/openid-connect/userinfo'
     }
 };
 
-console.log('🔐 Signia Auth Config:', {
+console.log('🔐 Signia Auth Config (ZKsync LATAM):', {
     environment: isDevelopment ? 'Development' : 'Production',
+    clientId: SIGNIA_CONFIG.clientId,
     redirectUri: SIGNIA_CONFIG.redirectUri,
     issuer: SIGNIA_CONFIG.issuer,
     authEndpoint: SIGNIA_CONFIG.endpoints.authorization
 });
 
-// Configuración del cliente OIDC
-class SigniaAuthClient {
+// Cliente OIDC para ZKsync LATAM
+class ZKsyncSigniaAuthClient {
     constructor(config) {
         this.config = config;
         this.isAuthenticated = false;
@@ -39,21 +40,16 @@ class SigniaAuthClient {
     }
 
     init() {
-        // Verificar si hay una sesión activa
         this.checkAuthState();
-        
-        // Configurar event listeners
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        // Event listener para el botón de login
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
             loginBtn.addEventListener('click', () => this.login());
         }
 
-        // Event listener para el botón de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.logout());
@@ -61,103 +57,107 @@ class SigniaAuthClient {
     }
 
     checkAuthState() {
-        // Verificar si hay tokens guardados en localStorage
-        const storedToken = localStorage.getItem('signia_access_token');
-        const storedUser = localStorage.getItem('signia_user');
+        const storedToken = localStorage.getItem('zksync_signia_token');
+        const storedUser = localStorage.getItem('zksync_signia_user');
 
         if (storedToken && storedUser) {
             this.accessToken = storedToken;
             this.user = JSON.parse(storedUser);
             this.isAuthenticated = true;
-            
-            // Verificar si el token sigue siendo válido
-            this.validateToken();
-        }
-    }
-
-    async validateToken() {
-        try {
-            // Aquí puedes agregar validación del token con el servidor
-            // Por ahora, asumimos que el token es válido
-            console.log('Token validation successful');
-        } catch (error) {
-            console.error('Token validation failed:', error);
-            this.clearAuthState();
+            console.log('✅ Usuario autenticado desde localStorage:', this.user.name);
         }
     }
 
     login() {
         try {
-            // Mostrar estado de carga
+            console.log('🔐 Iniciando autenticación con Signia Auth...');
             this.showLoadingState();
 
-            // Construir URL de autorización
             const authUrl = this.buildAuthUrl();
+            console.log('🔗 Redirigiendo a:', authUrl);
             
-            // Redirigir a la página de autenticación
             window.location.href = authUrl;
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('❌ Error en login:', error);
             this.hideLoadingState();
             alert('Error al iniciar sesión. Por favor, intenta de nuevo.');
         }
     }
 
     buildAuthUrl() {
+        const state = this.generateState();
+        const nonce = this.generateNonce();
+        
+        // Guardar state y nonce para validación
+        localStorage.setItem('zksync_signia_state', state);
+        localStorage.setItem('zksync_signia_nonce', nonce);
+
         const params = new URLSearchParams({
             client_id: this.config.clientId,
             redirect_uri: this.config.redirectUri,
             response_type: 'code',
             scope: this.config.scopes.join(' '),
-            state: this.generateState()
+            state: state,
+            nonce: nonce
         });
 
-        // Guardar state en localStorage para verificación
-        localStorage.setItem('signia_auth_state', params.get('state'));
-
-        const authUrl = `${this.config.endpoints.authorization}?${params.toString()}`;
-        console.log('🔗 Built auth URL:', authUrl);
-        return authUrl;
+        return `${this.config.endpoints.authorization}?${params.toString()}`;
     }
 
     generateState() {
-        // Generar un estado aleatorio para seguridad
-        return Math.random().toString(36).substring(2, 15) + 
-               Math.random().toString(36).substring(2, 15);
+        return this.generateRandomString(32);
+    }
+
+    generateNonce() {
+        return this.generateRandomString(32);
+    }
+
+    generateRandomString(length) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 
     async handleCallback(code, state) {
         try {
-            // Verificar state
-            const storedState = localStorage.getItem('signia_auth_state');
+            console.log('🔄 Procesando callback de autenticación...');
+            
+            // Validar state
+            const storedState = localStorage.getItem('zksync_signia_state');
             if (state !== storedState) {
-                throw new Error('Invalid state parameter');
+                throw new Error('Estado inválido - posible ataque CSRF');
             }
 
             // Intercambiar código por tokens
             const tokens = await this.exchangeCodeForTokens(code);
             
-            // Procesar tokens
+            // Procesar tokens y obtener usuario
             await this.processTokens(tokens);
+            
+            // Limpiar datos temporales
+            localStorage.removeItem('zksync_signia_state');
+            localStorage.removeItem('zksync_signia_nonce');
+            
+            console.log('✅ Autenticación completada exitosamente');
             
             // Redirigir a la página principal
             window.location.href = '/index.html';
+            
         } catch (error) {
-            console.error('Callback error:', error);
-            alert('Error en la autenticación. Por favor, intenta de nuevo.');
+            console.error('❌ Error en callback:', error);
+            alert(`Error de autenticación: ${error.message}`);
             window.location.href = '/welcome.html';
         }
     }
 
     async exchangeCodeForTokens(code) {
         try {
-            console.log('🔄 Exchanging authorization code for tokens...');
+            console.log('🔄 Intercambiando código por tokens...');
             
-            const tokenUrl = this.config.endpoints.token;
-            console.log('🔗 Token endpoint:', tokenUrl);
-            
-            // Realizar solicitud de token a Signia Auth
-            const tokenResponse = await fetch(tokenUrl, {
+            const response = await fetch(this.config.endpoints.token, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -170,56 +170,51 @@ class SigniaAuthClient {
                 })
             });
 
-            if (!tokenResponse.ok) {
-                const errorData = await tokenResponse.text();
-                throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorData}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Token exchange failed: ${response.status} - ${errorText}`);
             }
 
-            const tokens = await tokenResponse.json();
-            console.log('✅ Tokens received successfully');
-            
+            const tokens = await response.json();
+            console.log('✅ Tokens recibidos correctamente');
             return tokens;
+            
         } catch (error) {
-            console.error('❌ Token exchange error:', error);
+            console.error('❌ Error en intercambio de tokens:', error);
             throw error;
         }
     }
 
     async processTokens(tokens) {
         try {
-            console.log('🔄 Processing tokens and extracting user info...');
+            console.log('🔄 Procesando tokens y obteniendo información del usuario...');
             
-            // Guardar tokens
             this.accessToken = tokens.access_token;
-            localStorage.setItem('signia_access_token', tokens.access_token);
+            localStorage.setItem('zksync_signia_token', tokens.access_token);
             
-            if (tokens.id_token) {
-                localStorage.setItem('signia_id_token', tokens.id_token);
-            }
-
-            // Decodificar ID token para obtener información del usuario
+            // Obtener información del usuario
             if (tokens.id_token) {
                 this.user = this.decodeJWT(tokens.id_token);
             } else {
-                // Fallback: obtener info del usuario usando userinfo endpoint
                 this.user = await this.fetchUserInfo();
             }
 
-            localStorage.setItem('signia_user', JSON.stringify(this.user));
+            // Guardar usuario
+            localStorage.setItem('zksync_signia_user', JSON.stringify(this.user));
             this.isAuthenticated = true;
             
-            console.log('✅ User authenticated:', {
+            console.log('✅ Usuario autenticado:', {
                 name: this.user.name,
                 email: this.user.email,
-                sub: this.user.sub
+                id: this.user.sub
             });
+            
         } catch (error) {
-            console.error('❌ Token processing error:', error);
+            console.error('❌ Error procesando tokens:', error);
             throw error;
         }
     }
 
-    // Función para decodificar JWT (simple, sin verificación de firma)
     decodeJWT(token) {
         try {
             const base64Url = token.split('.')[1];
@@ -239,18 +234,16 @@ class SigniaAuthClient {
                 family_name: payload.family_name
             };
         } catch (error) {
-            console.error('❌ JWT decode error:', error);
-            throw new Error('Failed to decode user information');
+            console.error('❌ Error decodificando JWT:', error);
+            throw new Error('Error al decodificar información del usuario');
         }
     }
 
-    // Función para obtener información del usuario del endpoint userinfo
     async fetchUserInfo() {
         try {
-            const userInfoUrl = this.config.endpoints.userInfo;
-            console.log('🔗 UserInfo endpoint:', userInfoUrl);
+            console.log('🔄 Obteniendo información del usuario...');
             
-            const response = await fetch(userInfoUrl, {
+            const response = await fetch(this.config.endpoints.userinfo, {
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`
                 }
@@ -271,33 +264,31 @@ class SigniaAuthClient {
                 family_name: userInfo.family_name
             };
         } catch (error) {
-            console.error('❌ UserInfo fetch error:', error);
+            console.error('❌ Error obteniendo UserInfo:', error);
             throw error;
         }
     }
 
     logout() {
-        // Limpiar estado de autenticación
+        console.log('🚪 Cerrando sesión...');
+        
+        // Limpiar estado local
         this.clearAuthState();
         
-        // Redirigir a la página de bienvenida
+        // Redirigir a welcome
         window.location.href = '/welcome.html';
     }
 
     clearAuthState() {
-        console.log('🚪 Clearing authentication state...');
-        
         this.isAuthenticated = false;
         this.user = null;
         this.accessToken = null;
         
         // Limpiar localStorage
-        localStorage.removeItem('signia_access_token');
-        localStorage.removeItem('signia_id_token');
-        localStorage.removeItem('signia_user');
-        localStorage.removeItem('signia_auth_state');
-        
-        console.log('✅ Authentication state cleared');
+        localStorage.removeItem('zksync_signia_token');
+        localStorage.removeItem('zksync_signia_user');
+        localStorage.removeItem('zksync_signia_state');
+        localStorage.removeItem('zksync_signia_nonce');
     }
 
     showLoadingState() {
@@ -306,7 +297,7 @@ class SigniaAuthClient {
         
         if (loginBtn) {
             loginBtn.disabled = true;
-            loginBtn.style.display = 'none';
+            loginBtn.innerHTML = '<div class="loading"></div> Autenticando...';
         }
         
         if (loadingMessage) {
@@ -320,7 +311,7 @@ class SigniaAuthClient {
         
         if (loginBtn) {
             loginBtn.disabled = false;
-            loginBtn.style.display = 'block';
+            loginBtn.innerHTML = 'Iniciar Sesión con Signia';
         }
         
         if (loadingMessage) {
@@ -329,44 +320,41 @@ class SigniaAuthClient {
     }
 }
 
-// Función para verificar autenticación en páginas protegidas
-function checkAuthentication() {
-    const authClient = new SigniaAuthClient(SIGNIA_CONFIG);
+// Inicializar cliente de autenticación
+let signiaAuthClient;
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando Signia Auth Client...');
+    signiaAuthClient = new ZKsyncSigniaAuthClient(SIGNIA_CONFIG);
     
-    if (!authClient.isAuthenticated) {
-        // Redirigir a la página de bienvenida si no está autenticado
+    // Hacer el cliente disponible globalmente
+    window.signiaAuthClient = signiaAuthClient;
+});
+
+// Función para verificar autenticación (usada en páginas protegidas)
+function checkAuthentication() {
+    if (!signiaAuthClient || !signiaAuthClient.isAuthenticated) {
+        console.log('❌ Usuario no autenticado, redirigiendo a welcome...');
         window.location.href = '/welcome.html';
         return false;
     }
-    
-    return authClient.user;
+    return true;
 }
 
 // Función para mostrar información del usuario
 function displayUserInfo(user) {
-    // Actualizar el título con el nombre del usuario
-    const title = document.querySelector('h1');
-    if (title && user.name) {
-        title.textContent = `¡Bienvenido, ${user.name}!`;
+    const userNameElement = document.getElementById('userName');
+    const userEmailElement = document.getElementById('userEmail');
+    
+    if (userNameElement) {
+        userNameElement.textContent = user.name;
     }
     
-    // Puedes agregar más lógica aquí para mostrar información del usuario
-    console.log('Usuario autenticado:', user);
+    if (userEmailElement) {
+        userEmailElement.textContent = user.email;
+    }
 }
 
-// Inicializar cliente de autenticación
-document.addEventListener('DOMContentLoaded', function() {
-    window.signiaAuth = new SigniaAuthClient(SIGNIA_CONFIG);
-    
-    // Si estamos en una página protegida, verificar autenticación
-    if (window.location.pathname.includes('index.html')) {
-        const user = checkAuthentication();
-        if (user) {
-            displayUserInfo(user);
-        }
-    }
-});
-
-// Exportar para uso global
-window.SigniaAuthClient = SigniaAuthClient;
-window.checkAuthentication = checkAuthentication; 
+// Exportar funciones para uso global
+window.checkAuthentication = checkAuthentication;
+window.displayUserInfo = displayUserInfo; 
