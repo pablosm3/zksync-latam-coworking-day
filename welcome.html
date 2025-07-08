@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKsync LATAM Cowork Day - Welcome</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .welcome-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .welcome-card {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .auth-button {
+            width: 100%;
+            max-width: 300px;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 20px 0;
+        }
+        
+        .auth-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(30, 58, 138, 0.3);
+        }
+        
+        .auth-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <img src="zksync-light.png" alt="ZKsync Logo" class="zksync-logo">
+            </div>
+            <h1>ZKsync LATAM Cowork Day</h1>
+            <p class="subtitle">Bienvenido al evento más importante del ecosistema ZKsync en LATAM</p>
+        </header>
+        
+        <main class="main-content">
+            <div class="welcome-container">
+                <div class="welcome-card">
+                    <h2 class="welcome-title">¡Bienvenido!</h2>
+                    <p class="welcome-subtitle">
+                        Para acceder al registro del evento, necesitas autenticarte con Signia Auth. 
+                        Es rápido, seguro y sin contraseñas.
+                    </p>
+                    
+                    <button id="loginBtn" class="auth-button">
+                        Iniciar Sesión con Signia
+                    </button>
+                    
+                    <div id="loadingMessage" style="display: none; margin-top: 20px;">
+                        <div class="loading"></div>
+                        <span>Iniciando sesión...</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <p>&copy; 2024 ZKsync LATAM Cowork Day</p>
+        </footer>
+    </div>
+    
+    <script src="signia-auth.js"></script>
+</body>
+</html> 

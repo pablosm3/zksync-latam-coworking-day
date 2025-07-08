@@ -14,6 +14,10 @@
             </div>
             <h1>ZKsync LATAM Cowork Day</h1>
             <p class="subtitle">Únete a nosotros en este evento especial</p>
+            <div class="auth-info">
+                <span id="userInfo"></span>
+                <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+            </div>
         </header>
         
         <main class="main-content">
@@ -37,6 +41,24 @@
         </footer>
     </div>
     
+    <script src="signia-auth.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Verificar autenticación al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = checkAuthentication();
+            if (user) {
+                displayUserInfo(user);
+            }
+        });
+        
+        // Función mejorada para mostrar información del usuario
+        function displayUserInfo(user) {
+            const userInfoElement = document.getElementById('userInfo');
+            if (userInfoElement && user.name) {
+                userInfoElement.textContent = `Hola, ${user.name}`;
+            }
+        }
+    </script>
 </body>
 </html> 
