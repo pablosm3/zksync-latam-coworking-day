@@ -69,60 +69,46 @@
         </footer>
     </div>
 
-    <script src="signia-auth.js"></script>
     <script src="script.js"></script>
-    <script>
+    <script type="module">
+        import { OIDCClient } from 'https://cdn.skypack.dev/@getsignia/signia-auth-sdk@^0.1.5';
+        
+        console.log('🔄 Verificando autenticación con SDK...');
+        
+        // Detectar entorno
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const baseUrl = isDevelopment ? 'http://localhost:3000' : 'https://zksynclatam.terolabs.xyz';
+        
+        // Configuración del cliente OIDC (misma que en otras páginas)
+        const oidcClient = new OIDCClient({
+            clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',
+            redirectUri: `${baseUrl}/oidc-callback.html`,
+            issuer: 'https://zksynclatam.signiaauth.com',
+            scopes: ['openid', 'profile', 'email']
+        });
+        
         // Verificar autenticación al cargar la página
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔄 Verificando autenticación...');
-            
+        async function checkAuthentication() {
             try {
-                // Esperar a que el cliente de autenticación esté disponible
-                await waitForAuthClient();
+                console.log('🔐 Verificando estado de autenticación...');
                 
-                // Verificar si el usuario está autenticado
-                if (!window.signiaAuthClient.isAuthenticated) {
+                const user = await oidcClient.getUser();
+                if (!user) {
                     console.log('❌ Usuario no autenticado, redirigiendo a welcome...');
                     window.location.href = '/welcome.html';
-                    return;
+                    return false;
                 }
                 
-                // Mostrar información del usuario
-                const user = window.signiaAuthClient.user;
-                if (user) {
-                    console.log('✅ Usuario autenticado:', user.name);
-                    displayUserInfo(user);
-                    showUserInfo();
-                }
+                console.log('✅ Usuario autenticado:', user);
+                displayUserInfo(user);
+                showUserInfo();
+                return true;
                 
             } catch (error) {
                 console.error('❌ Error verificando autenticación:', error);
                 window.location.href = '/welcome.html';
+                return false;
             }
-        });
-        
-        async function waitForAuthClient() {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const maxAttempts = 50; // 5 segundos máximo
-                
-                const checkClient = () => {
-                    if (window.signiaAuthClient) {
-                        resolve();
-                        return;
-                    }
-                    
-                    attempts++;
-                    if (attempts >= maxAttempts) {
-                        reject(new Error('Cliente de autenticación no disponible'));
-                        return;
-                    }
-                    
-                    setTimeout(checkClient, 100);
-                };
-                
-                checkClient();
-            });
         }
         
         function displayUserInfo(user) {
@@ -130,11 +116,11 @@
             const userEmailElement = document.getElementById('userEmail');
             
             if (userNameElement) {
-                userNameElement.textContent = user.name || 'Usuario';
+                userNameElement.textContent = user.profile?.name || user.profile?.given_name || 'Usuario';
             }
             
             if (userEmailElement) {
-                userEmailElement.textContent = user.email || '-';
+                userEmailElement.textContent = user.profile?.email || '-';
             }
         }
         
@@ -145,13 +131,34 @@
             }
         }
         
-        // Configurar logout
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            if (window.signiaAuthClient) {
-                window.signiaAuthClient.logout();
+        // Función de logout usando SDK
+        window.signiaLogout = async () => {
+            try {
+                console.log('🚪 Cerrando sesión...');
+                await oidcClient.signOut();
+                // El SDK redirigirá automáticamente o podemos hacerlo manualmente
+                window.location.href = '/welcome.html';
+            } catch (error) {
+                console.error('❌ Error en logout:', error);
+                // Fallback: redirigir manualmente
+                window.location.href = '/welcome.html';
+            }
+        };
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOM cargado, verificando autenticación...');
+            checkAuthentication();
+            
+            // Configurar logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', signiaLogout);
             }
         });
+        
+        // Hacer cliente disponible globalmente para debugging
+        window.oidcClient = oidcClient;
     </script>
 </body>
-</html> 
 </html> 

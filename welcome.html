@@ -77,6 +77,16 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        .error-message {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #fecaca;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +116,11 @@
                         <div class="loading"></div>
                         <span>Iniciando sesión...</span>
                     </div>
+                    
+                    <div id="errorMessage" class="error-message">
+                        <strong>Error de Autenticación</strong><br>
+                        <span id="errorText">Ha ocurrido un error durante la autenticación.</span>
+                    </div>
                 </div>
             </div>
         </main>
@@ -115,6 +130,131 @@
         </footer>
     </div>
     
-    <script src="signia-auth.js"></script>
+    <script type="module">
+        import { OIDCClient } from 'https://cdn.skypack.dev/@getsignia/signia-auth-sdk@^0.1.5';
+        
+        console.log('🚀 Inicializando Signia Auth SDK...');
+        
+        // Detectar entorno
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const baseUrl = isDevelopment ? 'http://localhost:3000' : 'https://zksynclatam.terolabs.xyz';
+        
+        // Configuración del cliente OIDC usando SDK oficial
+        const oidcClient = new OIDCClient({
+            clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',
+            redirectUri: `${baseUrl}/oidc-callback.html`,
+            issuer: 'https://zksynclatam.signiaauth.com',
+            scopes: ['openid', 'profile', 'email']
+        });
+        
+        console.log('🔐 Signia Auth Config (SDK):', {
+            environment: isDevelopment ? 'Development' : 'Production',
+            clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',
+            redirectUri: `${baseUrl}/oidc-callback.html`,
+            issuer: 'https://zksynclatam.signiaauth.com'
+        });
+        
+        // Función de login
+        window.signiaLogin = async () => {
+            try {
+                console.log('🔐 Iniciando autenticación con Signia SDK...');
+                showLoadingState();
+                
+                await oidcClient.signIn();
+            } catch (error) {
+                console.error('❌ Error en login:', error);
+                showErrorState(`Error al iniciar sesión: ${error.message}`);
+                hideLoadingState();
+            }
+        };
+        
+        // Verificar autenticación existente
+        window.checkAuth = async () => {
+            try {
+                const user = await oidcClient.getUser();
+                if (user) {
+                    console.log('✅ Usuario ya autenticado:', user);
+                    // Redirigir al formulario si ya está autenticado
+                    window.location.href = '/index.html';
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error verificando autenticación:', error);
+                return false;
+            }
+        };
+        
+        // Función de logout
+        window.signiaLogout = async () => {
+            try {
+                console.log('🚪 Cerrando sesión...');
+                await oidcClient.signOut();
+            } catch (error) {
+                console.error('❌ Error en logout:', error);
+            }
+        };
+        
+        // Funciones de UI
+        function showLoadingState() {
+            const loginBtn = document.getElementById('loginBtn');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            if (loginBtn) {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<div class="loading"></div> Autenticando...';
+            }
+            
+            if (loadingMessage) {
+                loadingMessage.style.display = 'block';
+            }
+            
+            if (errorMessage) {
+                errorMessage.style.display = 'none';
+            }
+        }
+        
+        function hideLoadingState() {
+            const loginBtn = document.getElementById('loginBtn');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Iniciar Sesión con Signia';
+            }
+            
+            if (loadingMessage) {
+                loadingMessage.style.display = 'none';
+            }
+        }
+        
+        function showErrorState(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            if (errorMessage) {
+                errorMessage.style.display = 'block';
+            }
+            
+            if (errorText) {
+                errorText.textContent = message;
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOM cargado, verificando autenticación...');
+            checkAuth();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', signiaLogin);
+            }
+        });
+        
+        // Hacer funciones disponibles globalmente para debugging
+        window.oidcClient = oidcClient;
+    </script>
 </body>
 </html> 
