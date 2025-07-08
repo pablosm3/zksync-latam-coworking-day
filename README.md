@@ -36,7 +36,7 @@ Este proyecto utiliza **Signia Auth** para proporcionar autenticación sin contr
 zksync-cowork-day/
 ├── welcome.html          # 🏠 Página de bienvenida (pública)
 ├── index.html            # 📝 Formulario de registro (protegida)
-├── callback.html         # 🔄 Callback de autenticación
+├── oidc-callback.html    # 🔄 Callback de autenticación OIDC
 ├── signia-auth.js        # 🔐 Cliente de autenticación Signia
 ├── script.js             # ⚙️ Lógica del formulario
 ├── styles.css            # 🎨 Estilos CSS
@@ -49,7 +49,7 @@ zksync-cowork-day/
 
 1. **`/welcome.html`** → Página pública con botón de autenticación
 2. **Signia Auth** → Autenticación sin contraseñas
-3. **`/callback.html`** → Procesa retorno de autenticación
+3. **`/oidc-callback.html`** → Procesa retorno de autenticación OIDC
 4. **`/index.html`** → Formulario de registro (requiere autenticación)
 
 ## 🔧 Configuración Inicial
@@ -62,7 +62,7 @@ Edita `signia-auth.js` y reemplaza las credenciales:
 const SIGNIA_CONFIG = {
     clientId: 'TU_CLIENT_ID',           // ⚠️ Dashboard de Signia Auth
     issuer: 'TU_ISSUER_URL',            // ⚠️ URL del servidor Signia
-    redirectUri: 'http://localhost:3000/callback.html',
+    redirectUri: 'http://localhost:3000/oidc-callback',
     scopes: ['openid', 'profile', 'email']
 };
 ```
@@ -70,8 +70,8 @@ const SIGNIA_CONFIG = {
 ### 2. Configurar Callback en Signia Auth Dashboard
 
 Agregar estas URLs como callbacks autorizados:
-- **Desarrollo**: `http://localhost:3000/callback.html`
-- **Producción**: `https://zksynclatam.terolabs.xyz/callback.html`
+- **Desarrollo**: `http://localhost:3000/oidc-callback`
+- **Producción**: `https://zksynclatam.terolabs.xyz/oidc-callback`
 
 ## 🚀 Cómo Usar
 

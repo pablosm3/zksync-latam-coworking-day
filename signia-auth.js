@@ -11,14 +11,21 @@ const baseUrl = isDevelopment ? 'http://localhost:3000' : 'https://zksynclatam.t
 const SIGNIA_CONFIG = {
     clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',    // Client ID de Signia Auth
     issuer: 'https://zksynclatam.signiaauth.com',          // Servidor de Signia Auth
-    redirectUri: `${baseUrl}/callback.html`,               // Callback automático (dev/prod)
-    scopes: ['openid', 'profile', 'email']
+    redirectUri: `${baseUrl}/oidc-callback`,               // ✅ Callback correcto para OIDC
+    scopes: ['openid', 'profile', 'email'],
+    // Endpoints específicos de OAuth 2.0
+    endpoints: {
+        authorization: 'https://zksynclatam.signiaauth.com/oauth2/authorize',
+        token: 'https://zksynclatam.signiaauth.com/oauth2/token',
+        userInfo: 'https://zksynclatam.signiaauth.com/oauth2/userinfo'
+    }
 };
 
 console.log('🔐 Signia Auth Config:', {
     environment: isDevelopment ? 'Development' : 'Production',
     redirectUri: SIGNIA_CONFIG.redirectUri,
-    issuer: SIGNIA_CONFIG.issuer
+    issuer: SIGNIA_CONFIG.issuer,
+    authEndpoint: SIGNIA_CONFIG.endpoints.authorization
 });
 
 // Configuración del cliente OIDC
@@ -108,7 +115,9 @@ class SigniaAuthClient {
         // Guardar state en localStorage para verificación
         localStorage.setItem('signia_auth_state', params.get('state'));
 
-        return `${this.config.issuer}/auth?${params.toString()}`;
+        const authUrl = `${this.config.endpoints.authorization}?${params.toString()}`;
+        console.log('🔗 Built auth URL:', authUrl);
+        return authUrl;
     }
 
     generateState() {
@@ -144,8 +153,11 @@ class SigniaAuthClient {
         try {
             console.log('🔄 Exchanging authorization code for tokens...');
             
+            const tokenUrl = this.config.endpoints.token;
+            console.log('🔗 Token endpoint:', tokenUrl);
+            
             // Realizar solicitud de token a Signia Auth
-            const tokenResponse = await fetch(`${this.config.issuer}/oauth/token`, {
+            const tokenResponse = await fetch(tokenUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -235,7 +247,10 @@ class SigniaAuthClient {
     // Función para obtener información del usuario del endpoint userinfo
     async fetchUserInfo() {
         try {
-            const response = await fetch(`${this.config.issuer}/userinfo`, {
+            const userInfoUrl = this.config.endpoints.userInfo;
+            console.log('🔗 UserInfo endpoint:', userInfoUrl);
+            
+            const response = await fetch(userInfoUrl, {
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`
                 }
