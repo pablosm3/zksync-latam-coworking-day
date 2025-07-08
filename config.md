@@ -1,33 +1,35 @@
 # 🔐 Configuración de Signia Auth - ZKsync LATAM Cowork Day
 
-## 📋 Configuración Requerida
+## ✅ Configuración Completada
 
-Para que la autenticación funcione correctamente, necesitas configurar las siguientes credenciales en el archivo `signia-auth.js`:
+La autenticación con Signia Auth ya está completamente configurada y lista para usar.
 
-### 1. Client ID y Issuer URL
-
-Reemplaza estas líneas en `signia-auth.js`:
+### 🔧 Credenciales Configuradas
 
 ```javascript
 const SIGNIA_CONFIG = {
-    clientId: 'TU_CLIENT_ID',           // ⚠️ REEMPLAZAR
-    issuer: 'TU_ISSUER_URL',            // ⚠️ REEMPLAZAR
-    redirectUri: 'http://localhost:3000/callback.html',
-    scopes: ['openid', 'profile', 'email']
+    clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',    // ✅ Configurado
+    issuer: 'https://zksynclatam.signiaauth.com',          // ✅ Configurado
+    redirectUri: 'auto-detected',                          // ✅ Auto-detecta dev/prod
+    scopes: ['openid', 'profile', 'email']               // ✅ Configurado
 };
 ```
 
-### 2. Dónde obtener las credenciales:
+### 🔗 URLs de Callback Configuradas
 
-- **Client ID**: Dashboard de Signia Auth > Tu aplicación > Client ID
-- **Issuer URL**: Dashboard de Signia Auth > Tu aplicación > Issuer URL
+Las siguientes URLs deben estar configuradas en el Dashboard de Signia Auth como callbacks autorizados:
 
-### 3. Configurar Callback URL en Signia Auth Dashboard:
-
-Asegúrate de que estas URLs estén configuradas como callbacks autorizados:
-
-- **Desarrollo**: `http://localhost:3000/callback.html`
+- **Desarrollo**: `http://localhost:3000/callback.html` 
 - **Producción**: `https://zksynclatam.terolabs.xyz/callback.html`
+
+✅ **Auto-detección**: El sistema detecta automáticamente el entorno y usa la URL correcta.
+
+### 🔌 Endpoints de Signia Auth
+
+- **Issuer**: `https://zksynclatam.signiaauth.com`
+- **Authorization**: `https://zksynclatam.signiaauth.com/auth`
+- **Token**: `https://zksynclatam.signiaauth.com/oauth/token`
+- **UserInfo**: `https://zksynclatam.signiaauth.com/userinfo`
 
 ## 🚀 Flujo de Autenticación
 

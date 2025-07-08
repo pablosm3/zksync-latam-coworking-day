@@ -3,13 +3,23 @@
  * Adapted from Next.js implementation to vanilla JavaScript
  */
 
-// ⚠️ CONFIGURACIÓN REQUERIDA - Reemplazar con valores reales
+// ✅ CONFIGURACIÓN DE SIGNIA AUTH - ZKsync LATAM
+// Detectar entorno automáticamente
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const baseUrl = isDevelopment ? 'http://localhost:3000' : 'https://zksynclatam.terolabs.xyz';
+
 const SIGNIA_CONFIG = {
-    clientId: 'TU_CLIENT_ID',           // Obtener del Dashboard de Signia Auth
-    issuer: 'TU_ISSUER_URL',            // URL del servidor de Signia Auth
-    redirectUri: 'http://localhost:3000/callback.html',  // ⚠️ Debe coincidir con puerto 3000
+    clientId: 'a32c0de5-5701-4228-b846-3de45df3c2fb',    // Client ID de Signia Auth
+    issuer: 'https://zksynclatam.signiaauth.com',          // Servidor de Signia Auth
+    redirectUri: `${baseUrl}/callback.html`,               // Callback automático (dev/prod)
     scopes: ['openid', 'profile', 'email']
 };
+
+console.log('🔐 Signia Auth Config:', {
+    environment: isDevelopment ? 'Development' : 'Production',
+    redirectUri: SIGNIA_CONFIG.redirectUri,
+    issuer: SIGNIA_CONFIG.issuer
+});
 
 // Configuración del cliente OIDC
 class SigniaAuthClient {
@@ -131,35 +141,124 @@ class SigniaAuthClient {
     }
 
     async exchangeCodeForTokens(code) {
-        // Simular intercambio de código por tokens
-        // En una implementación real, esto se haría con el servidor de Signia Auth
-        console.log('Exchanging code for tokens:', code);
-        
-        // Mock response - en producción esto viene del servidor
-        return {
-            access_token: 'mock_access_token_' + Date.now(),
-            id_token: 'mock_id_token_' + Date.now(),
-            token_type: 'Bearer',
-            expires_in: 3600
-        };
+        try {
+            console.log('🔄 Exchanging authorization code for tokens...');
+            
+            // Realizar solicitud de token a Signia Auth
+            const tokenResponse = await fetch(`${this.config.issuer}/oauth/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    client_id: this.config.clientId,
+                    code: code,
+                    redirect_uri: this.config.redirectUri
+                })
+            });
+
+            if (!tokenResponse.ok) {
+                const errorData = await tokenResponse.text();
+                throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorData}`);
+            }
+
+            const tokens = await tokenResponse.json();
+            console.log('✅ Tokens received successfully');
+            
+            return tokens;
+        } catch (error) {
+            console.error('❌ Token exchange error:', error);
+            throw error;
+        }
     }
 
     async processTokens(tokens) {
-        // Guardar tokens
-        this.accessToken = tokens.access_token;
-        localStorage.setItem('signia_access_token', tokens.access_token);
+        try {
+            console.log('🔄 Processing tokens and extracting user info...');
+            
+            // Guardar tokens
+            this.accessToken = tokens.access_token;
+            localStorage.setItem('signia_access_token', tokens.access_token);
+            
+            if (tokens.id_token) {
+                localStorage.setItem('signia_id_token', tokens.id_token);
+            }
 
-        // Procesar ID token para obtener información del usuario
-        // En una implementación real, decodificarías el JWT
-        this.user = {
-            sub: 'user_' + Date.now(),
-            name: 'Usuario Demo',
-            email: 'demo@example.com',
-            picture: null
-        };
+            // Decodificar ID token para obtener información del usuario
+            if (tokens.id_token) {
+                this.user = this.decodeJWT(tokens.id_token);
+            } else {
+                // Fallback: obtener info del usuario usando userinfo endpoint
+                this.user = await this.fetchUserInfo();
+            }
 
-        localStorage.setItem('signia_user', JSON.stringify(this.user));
-        this.isAuthenticated = true;
+            localStorage.setItem('signia_user', JSON.stringify(this.user));
+            this.isAuthenticated = true;
+            
+            console.log('✅ User authenticated:', {
+                name: this.user.name,
+                email: this.user.email,
+                sub: this.user.sub
+            });
+        } catch (error) {
+            console.error('❌ Token processing error:', error);
+            throw error;
+        }
+    }
+
+    // Función para decodificar JWT (simple, sin verificación de firma)
+    decodeJWT(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            const payload = JSON.parse(jsonPayload);
+            
+            return {
+                sub: payload.sub,
+                name: payload.name || payload.preferred_username || 'Usuario',
+                email: payload.email,
+                picture: payload.picture,
+                given_name: payload.given_name,
+                family_name: payload.family_name
+            };
+        } catch (error) {
+            console.error('❌ JWT decode error:', error);
+            throw new Error('Failed to decode user information');
+        }
+    }
+
+    // Función para obtener información del usuario del endpoint userinfo
+    async fetchUserInfo() {
+        try {
+            const response = await fetch(`${this.config.issuer}/userinfo`, {
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`UserInfo request failed: ${response.status}`);
+            }
+
+            const userInfo = await response.json();
+            
+            return {
+                sub: userInfo.sub,
+                name: userInfo.name || userInfo.preferred_username || 'Usuario',
+                email: userInfo.email,
+                picture: userInfo.picture,
+                given_name: userInfo.given_name,
+                family_name: userInfo.family_name
+            };
+        } catch (error) {
+            console.error('❌ UserInfo fetch error:', error);
+            throw error;
+        }
     }
 
     logout() {
@@ -171,14 +270,19 @@ class SigniaAuthClient {
     }
 
     clearAuthState() {
+        console.log('🚪 Clearing authentication state...');
+        
         this.isAuthenticated = false;
         this.user = null;
         this.accessToken = null;
         
         // Limpiar localStorage
         localStorage.removeItem('signia_access_token');
+        localStorage.removeItem('signia_id_token');
         localStorage.removeItem('signia_user');
         localStorage.removeItem('signia_auth_state');
+        
+        console.log('✅ Authentication state cleared');
     }
 
     showLoadingState() {
